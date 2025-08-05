@@ -15,6 +15,8 @@ from datetime import datetime
 import glob
 import gc
 import time
+import json
+from huggingface_hub import hf_hub_download
 
 sys.path.append("vggt/")
 
@@ -27,11 +29,38 @@ from vggt.utils.geometry import unproject_depth_map_to_point_map
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 print("Initializing and loading VGGT model...")
-# model = VGGT.from_pretrained("facebook/VGGT-1B")  # another way to load the model
 
-model = VGGT()
-_URL = "https://huggingface.co/facebook/VGGT-1B/resolve/main/model.pt"
-model.load_state_dict(torch.hub.load_state_dict_from_url(_URL))
+# Download only the config from facebook/VGGT-1B (no weights)
+print("Downloading config from facebook/VGGT-1B...")
+config_path = hf_hub_download(
+    repo_id="facebook/VGGT-1B",
+    filename="config.json"
+)
+print(f"Config file downloaded to: {config_path}")
+
+# Download model weights from VGGT-1B-Commercial
+print("Downloading model weights from VGGT-1B-Commercial...")
+model_weights_path = hf_hub_download(
+    repo_id="facebook/VGGT-1B-Commercial",
+    filename="vggt_1B_commercial.pt"
+)
+print(f"Model weights downloaded to: {model_weights_path}")
+
+# Load config and create model efficiently
+print("Loading config and creating model...")
+with open(config_path, 'r') as f:
+    config = json.load(f)
+
+# Create model with config parameters (no weight download)
+model = VGGT(
+    img_size=config['img_size'],
+    patch_size=config['patch_size'],
+    embed_dim=config['embed_dim'],
+)
+
+# Load only the commercial weights
+print("Loading commercial weights...")
+model.load_state_dict(torch.load(model_weights_path, map_location="cpu"))
 
 
 model.eval()

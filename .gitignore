@@ -147,3 +147,9 @@ skyseg.onnx
 # pixi environments
 .pixi
 *.egg-info
+
+# outputs
+**/images/*.png
+input_images_*/
+colmap_output/*
+certificate.pem
